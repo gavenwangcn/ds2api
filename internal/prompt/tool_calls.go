@@ -38,7 +38,7 @@ func FormatToolCallsForPrompt(raw any) string {
 	if len(blocks) == 0 {
 		return ""
 	}
-	return "<tool_calls>\n" + strings.Join(blocks, "\n") + "\n</tool_calls>"
+	return "<tools>\n" + strings.Join(blocks, "\n") + "\n</tools>"
 }
 
 // StringifyToolCallArguments normalizes tool arguments into a compact string
@@ -105,16 +105,16 @@ func formatToolCallParametersForPrompt(raw any) string {
 	body, ok := renderPromptToolXMLBody(value, "      ")
 	if ok {
 		if strings.TrimSpace(body) == "" {
-			return "    <parameters></parameters>"
+			return "    <param></param>"
 		}
-		return "    <parameters>\n" + body + "\n    </parameters>"
+		return "    <param>\n" + body + "\n    </param>"
 	}
 
 	fallback := StringifyToolCallArguments(raw)
 	if strings.TrimSpace(fallback) == "" {
 		fallback = "{}"
 	}
-	return "    <parameters><content>" + renderPromptXMLText(fallback) + "</content></parameters>"
+	return "    <param><content>" + renderPromptXMLText(fallback) + "</content></param>"
 }
 
 func normalizePromptToolCallValue(raw any) any {

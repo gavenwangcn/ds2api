@@ -38,7 +38,7 @@ func TestNormalizeOpenAIMessagesForPrompt_AssistantToolCallsAndToolResult(t *tes
 		t.Fatalf("expected 4 normalized messages with assistant tool history preserved, got %d", len(normalized))
 	}
 	assistantContent, _ := normalized[2]["content"].(string)
-	if !strings.Contains(assistantContent, "<tool_calls>") {
+	if !strings.Contains(assistantContent, "<tools>") {
 		t.Fatalf("assistant tool history should be preserved in XML form, got %q", assistantContent)
 	}
 	if !strings.Contains(assistantContent, "<tool_name>get_weather</tool_name>") {
@@ -49,7 +49,7 @@ func TestNormalizeOpenAIMessagesForPrompt_AssistantToolCallsAndToolResult(t *tes
 	}
 
 	prompt := util.MessagesPrepare(normalized)
-	if !strings.Contains(prompt, "<tool_calls>") {
+	if !strings.Contains(prompt, "<tools>") {
 		t.Fatalf("expected preserved assistant tool history in prompt: %q", prompt)
 	}
 }
@@ -258,7 +258,7 @@ func TestNormalizeOpenAIMessagesForPrompt_AssistantNilContentDoesNotInjectNullLi
 	if strings.Contains(content, "null") {
 		t.Fatalf("expected no null literal injection, got %q", content)
 	}
-	if !strings.Contains(content, "<tool_calls>") {
+	if !strings.Contains(content, "<tools>") {
 		t.Fatalf("expected assistant tool history in normalized content, got %q", content)
 	}
 }

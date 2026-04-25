@@ -13,18 +13,18 @@ func TestRegression_RobustXMLAndCDATA(t *testing.T) {
 	}{
 		{
 			name:     "Standard JSON parameters (Regression)",
-			text:     `<tool_call><tool_name>foo</tool_name><parameters>{"a": 1}</parameters></tool_call>`,
+			text:     `<tools><tool_call><tool_name>foo</tool_name><param>{"a": 1}</param></tool_call></tools>`,
 			expected: []ParsedToolCall{{Name: "foo", Input: map[string]any{"a": float64(1)}}},
 		},
 		{
 			name:     "XML tags parameters (Regression)",
-			text:     `<tool_call><tool_name>foo</tool_name><parameters><arg1>hello</arg1></parameters></tool_call>`,
+			text:     `<tools><tool_call><tool_name>foo</tool_name><param><arg1>hello</arg1></param></tool_call></tools>`,
 			expected: []ParsedToolCall{{Name: "foo", Input: map[string]any{"arg1": "hello"}}},
 		},
 		{
 			name: "CDATA parameters (New Feature)",
-			text: `<tool_call><tool_name>write_file</tool_name><parameters><content><![CDATA[line 1
-line 2 with <tags> and & symbols]]></content></parameters></tool_call>`,
+			text: `<tools><tool_call><tool_name>write_file</tool_name><param><content><![CDATA[line 1
+line 2 with <tags> and & symbols]]></content></param></tool_call></tools>`,
 			expected: []ParsedToolCall{{
 				Name:  "write_file",
 				Input: map[string]any{"content": "line 1\nline 2 with <tags> and & symbols"},
@@ -32,9 +32,9 @@ line 2 with <tags> and & symbols]]></content></parameters></tool_call>`,
 		},
 		{
 			name: "Nested XML with repeated parameters (New Feature)",
-			text: `<tool_call><tool_name>write_file</tool_name><parameters><path>script.sh</path><content><![CDATA[#!/bin/bash
+			text: `<tools><tool_call><tool_name>write_file</tool_name><param><path>script.sh</path><content><![CDATA[#!/bin/bash
 echo "hello"
-]]></content><item>first</item><item>second</item></parameters></tool_call>`,
+]]></content><item>first</item><item>second</item></param></tool_call></tools>`,
 			expected: []ParsedToolCall{{
 				Name: "write_file",
 				Input: map[string]any{
@@ -46,7 +46,7 @@ echo "hello"
 		},
 		{
 			name: "Dirty XML with unescaped symbols (Robustness Improvement)",
-			text: `<tool_call><tool_name>bash</tool_name><parameters><command>echo "hello" > out.txt && cat out.txt</command></parameters></tool_call>`,
+			text: `<tools><tool_call><tool_name>bash</tool_name><param><command>echo "hello" > out.txt && cat out.txt</command></param></tool_call></tools>`,
 			expected: []ParsedToolCall{{
 				Name:  "bash",
 				Input: map[string]any{"command": "echo \"hello\" > out.txt && cat out.txt"},
@@ -54,7 +54,7 @@ echo "hello"
 		},
 		{
 			name: "Mixed JSON inside CDATA (New Hybrid Case)",
-			text: `<tool_call><tool_name>foo</tool_name><parameters><![CDATA[{"json_param": "works"}]]></parameters></tool_call>`,
+			text: `<tools><tool_call><tool_name>foo</tool_name><param><![CDATA[{"json_param": "works"}]]></param></tool_call></tools>`,
 			expected: []ParsedToolCall{{
 				Name:  "foo",
 				Input: map[string]any{"json_param": "works"},

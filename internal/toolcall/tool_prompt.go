@@ -36,19 +36,19 @@ func BuildToolCallInstructions(toolNames []string) string {
 
 	return `TOOL CALL FORMAT — FOLLOW EXACTLY:
 
-<tool_calls>
+<tools>
   <tool_call>
     <tool_name>TOOL_NAME_HERE</tool_name>
-    <parameters>
+    <param>
       <PARAMETER_NAME><![CDATA[PARAMETER_VALUE]]></PARAMETER_NAME>
-    </parameters>
+    </param>
   </tool_call>
-</tool_calls>
+</tools>
 
 RULES:
-1) Use the <tool_calls> XML format only. Never emit JSON or function-call syntax.
-2) Put one or more <tool_call> entries under a single <tool_calls> root.
-3) Parameters must be XML, not JSON.
+1) Use the <tools> XML wrapper format only.
+2) Put one or more <tool_call> entries under a single <tools> root.
+3) Use <tool_name> for the tool name and <param> for the argument container.
 4) All string values must use <![CDATA[...]]>, even short ones. This includes code, scripts, file contents, prompts, paths, names, and queries.
 5) Objects use nested XML elements. Arrays may repeat the same tag or use <item> children.
 6) Numbers, booleans, and null stay plain text.
@@ -64,53 +64,51 @@ PARAMETER SHAPES:
 【WRONG — Do NOT do these】:
 
 Wrong 1 — mixed text after XML:
-  <tool_calls>...</tool_calls> I hope this helps.
-Wrong 2 — function-call syntax:
-  Grep({"pattern": "token"})
-Wrong 3 — JSON parameters:
-  <tool_call><tool_name>` + ex1 + `</tool_name><parameters>{"path":"x"}</parameters></tool_call>
-Wrong 4 — Markdown code fences:
+  <tools>...</tools> I hope this helps.
+Wrong 2 — JSON payload inside <param>:
+  <tool_call><tool_name>` + ex1 + `</tool_name><param>{"path":"x"}</param></tool_call>
+Wrong 3 — Markdown code fences:
   ` + "```xml" + `
-  <tool_calls>...</tool_calls>
+  <tools>...</tools>
   ` + "```" + `
 
-Remember: The ONLY valid way to use tools is the <tool_calls> XML block at the end of your response.
+Remember: The ONLY valid way to use tools is the <tools>...</tools> XML block at the end of your response.
 
 【CORRECT EXAMPLES】:
 
 Example A — Single tool:
-<tool_calls>
+<tools>
   <tool_call>
     <tool_name>` + ex1 + `</tool_name>
-    <parameters>` + ex1Params + `</parameters>
+    <param>` + ex1Params + `</param>
   </tool_call>
-</tool_calls>
+</tools>
 
 Example B — Two tools in parallel:
-<tool_calls>
+<tools>
   <tool_call>
     <tool_name>` + ex1 + `</tool_name>
-    <parameters>` + ex1Params + `</parameters>
+    <param>` + ex1Params + `</param>
   </tool_call>
   <tool_call>
     <tool_name>` + ex2 + `</tool_name>
-    <parameters>` + ex2Params + `</parameters>
+    <param>` + ex2Params + `</param>
   </tool_call>
-</tool_calls>
+</tools>
 
 Example C — Tool with nested XML parameters:
-<tool_calls>
+<tools>
   <tool_call>
     <tool_name>` + ex3 + `</tool_name>
-    <parameters>` + ex3Params + `</parameters>
+    <param>` + ex3Params + `</param>
   </tool_call>
-</tool_calls>
+</tools>
  
 Example D — Tool with long script using CDATA (RELIABLE FOR CODE/SCRIPTS):
-<tool_calls>
+<tools>
   <tool_call>
     <tool_name>` + ex2 + `</tool_name>
-    <parameters>
+    <param>
       <path>` + promptCDATA("script.sh") + `</path>
       <content><![CDATA[
 #!/bin/bash
@@ -118,9 +116,9 @@ if [ "$1" == "test" ]; then
   echo "Success!"
 fi
 ]]></content>
-    </parameters>
+    </param>
   </tool_call>
-</tool_calls>
+</tools>
 
 `
 }

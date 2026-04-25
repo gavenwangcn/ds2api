@@ -1,14 +1,6 @@
 {
-  "calls": [
-    {
-      "name": "get_weather",
-      "input": {
-        "city": "beijing",
-        "unit": "c"
-      }
-    }
-  ],
-  "sawToolCallSyntax": true,
+  "calls": [],
+  "sawToolCallSyntax": false,
   "rejectedByPolicy": false,
   "rejectedToolNames": []
 }

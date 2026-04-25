@@ -166,7 +166,7 @@ func (h *Handler) handleNonStream(w http.ResponseWriter, resp *http.Response, co
 		if historySession != nil {
 			historySession.error(status, message, code, finalThinking, finalText)
 		}
-		writeUpstreamEmptyOutputError(w, finalText, result.ContentFilter)
+		writeUpstreamEmptyOutputError(w, finalText, finalThinking, result.ContentFilter)
 		return
 	}
 	respBody := openaifmt.BuildChatCompletion(completionID, model, finalPrompt, finalThinking, finalText, toolNames)

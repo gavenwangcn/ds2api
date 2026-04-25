@@ -1,5 +1,5 @@
 {
-  "text": "<tool_call><tool_name>get_weather</tool_name><parameters>{\"city\":\"beijing\",\"unit\":\"c\"}</parameters></tool_call>",
+  "text": "<tool><tool_name>get_weather</tool_name><param>{\"city\":\"beijing\",\"unit\":\"c\"}</param></tool>",
   "tool_names": [
     "get_weather"
   ]

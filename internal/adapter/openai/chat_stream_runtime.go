@@ -201,17 +201,7 @@ func (s *chatStreamRuntime) finalize(finishReason string) {
 		finishReason = "tool_calls"
 	}
 	if len(detected.Calls) == 0 && !s.toolCallsEmitted && strings.TrimSpace(finalText) == "" {
-		status := http.StatusTooManyRequests
-		message := "Upstream model returned empty output."
-		code := "upstream_empty_output"
-		if strings.TrimSpace(finalThinking) != "" {
-			message = "Upstream model returned reasoning without visible output."
-		}
-		if finishReason == "content_filter" {
-			status = http.StatusBadRequest
-			message = "Upstream content filtered the response and returned no output."
-			code = "content_filter"
-		}
+		status, message, code := upstreamEmptyOutputDetail(finishReason == "content_filter", finalText, finalThinking)
 		s.sendFailedChunk(status, message, code)
 		return
 	}

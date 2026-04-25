@@ -99,7 +99,7 @@ func newResponsesStreamRuntime(
 	}
 }
 
-func (s *responsesStreamRuntime) failResponse(message, code string) {
+func (s *responsesStreamRuntime) failResponse(status int, message, code string) {
 	s.failed = true
 	failedResp := map[string]any{
 		"id":          s.responseID,
@@ -107,11 +107,12 @@ func (s *responsesStreamRuntime) failResponse(message, code string) {
 		"object":      "response",
 		"model":       s.model,
 		"status":      "failed",
+		"status_code": status,
 		"output":      []any{},
 		"output_text": "",
 		"error": map[string]any{
 			"message": message,
-			"type":    "invalid_request_error",
+			"type":    openAIErrorType(status),
 			"code":    code,
 			"param":   nil,
 		},
@@ -119,7 +120,7 @@ func (s *responsesStreamRuntime) failResponse(message, code string) {
 	if s.persistResponse != nil {
 		s.persistResponse(failedResp)
 	}
-	s.sendEvent("response.failed", openaifmt.BuildResponsesFailedPayload(s.responseID, s.model, message, code))
+	s.sendEvent("response.failed", openaifmt.BuildResponsesFailedPayload(s.responseID, s.model, status, message, code))
 	s.sendDone()
 }
 
@@ -145,16 +146,12 @@ func (s *responsesStreamRuntime) finalize() {
 	s.closeMessageItem()
 
 	if s.toolChoice.IsRequired() && len(detected) == 0 {
-		s.failResponse("tool_choice requires at least one valid tool call.", "tool_choice_violation")
+		s.failResponse(http.StatusUnprocessableEntity, "tool_choice requires at least one valid tool call.", "tool_choice_violation")
 		return
 	}
 	if len(detected) == 0 && strings.TrimSpace(finalText) == "" {
-		code := "upstream_empty_output"
-		message := "Upstream model returned empty output."
-		if finalThinking != "" {
-			message = "Upstream model returned reasoning without visible output."
-		}
-		s.failResponse(message, code)
+		status, message, code := upstreamEmptyOutputDetail(false, finalText, finalThinking)
+		s.failResponse(status, message, code)
 		return
 	}
 	s.closeIncompleteFunctionItems()

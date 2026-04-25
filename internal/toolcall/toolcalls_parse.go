@@ -47,9 +47,6 @@ func parseToolCallsDetailedXMLOnly(text string) ToolCallParseResult {
 
 	parsed := parseXMLToolCalls(trimmed)
 	if len(parsed) == 0 {
-		parsed = parseMarkupToolCalls(trimmed)
-	}
-	if len(parsed) == 0 {
 		return result
 	}
 
@@ -77,12 +74,8 @@ func filterToolCallsDetailed(parsed []ParsedToolCall) ([]ParsedToolCall, []strin
 
 func looksLikeToolCallSyntax(text string) bool {
 	lower := strings.ToLower(text)
-	return strings.Contains(lower, "<tool_calls") ||
+	return strings.Contains(lower, "<tools") ||
 		strings.Contains(lower, "<tool_call") ||
-		strings.Contains(lower, "<function_calls") ||
-		strings.Contains(lower, "<function_call") ||
-		strings.Contains(lower, "<invoke") ||
-		strings.Contains(lower, "<tool_use") ||
 		strings.Contains(lower, "<attempt_completion") ||
 		strings.Contains(lower, "<ask_followup_question") ||
 		strings.Contains(lower, "<new_task") ||

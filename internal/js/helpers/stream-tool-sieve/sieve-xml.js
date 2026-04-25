@@ -3,12 +3,8 @@ const { parseToolCalls } = require('./parse');
 
 // Tag pairs ordered longest-first: wrapper tags checked before inner tags.
 const XML_TOOL_TAG_PAIRS = [
-  { open: '<tool_calls', close: '</tool_calls>' },
+  { open: '<tools', close: '</tools>' },
   { open: '<tool_call', close: '</tool_call>' },
-  { open: '<function_calls', close: '</function_calls>' },
-  { open: '<function_call', close: '</function_call>' },
-  { open: '<invoke', close: '</invoke>' },
-  { open: '<tool_use', close: '</tool_use>' },
 ];
 
 const XML_TOOL_OPENING_TAGS = XML_TOOL_TAG_PAIRS.map(p => p.open);

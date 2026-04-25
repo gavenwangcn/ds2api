@@ -122,8 +122,8 @@ func TestHandleResponsesStreamEmitsDistinctToolCallIDsAcrossSeparateToolBlocks(t
 		return "data: " + string(b) + "\n"
 	}
 
-	streamBody := sseLine("前置文本\n<tool_calls>\n  <tool_call>\n    <tool_name>read_file</tool_name>\n    <parameters>{\"path\":\"README.MD\"}</parameters>\n  </tool_call>\n</tool_calls>") +
-		sseLine("中间文本\n<tool_calls>\n  <tool_call>\n    <tool_name>search</tool_name>\n    <parameters>{\"q\":\"golang\"}</parameters>\n  </tool_call>\n</tool_calls>") +
+	streamBody := sseLine("前置文本\n<tools>\n  <tool_call>\n    <tool_name>read_file</tool_name>\n    <param>{\"path\":\"README.MD\"}</param>\n  </tool_call>\n</tools>") +
+		sseLine("中间文本\n<tools>\n  <tool_call>\n    <tool_name>search</tool_name>\n    <param>{\"q\":\"golang\"}</param>\n  </tool_call>\n</tools>") +
 		"data: [DONE]\n"
 	resp := &http.Response{
 		StatusCode: http.StatusOK,

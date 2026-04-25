@@ -247,16 +247,18 @@ func asString(v any) string {
 
 func TestHandleClaudeStreamRealtimeToolSafetyAcrossStructuredFormats(t *testing.T) {
 	tests := []struct {
-		name    string
-		payload string
+		name        string
+		payload     string
+		wantToolUse bool
 	}{
-		{name: "xml_tool_call", payload: `<tool_call><tool_name>Bash</tool_name><parameters><command>pwd</command></parameters></tool_call>`},
-		{name: "xml_json_tool_call", payload: `<tool_call>{"tool":"Bash","params":{"command":"pwd"}}</tool_call>`},
-		{name: "nested_tool_tag_style", payload: `<tool_call><tool name="Bash"><command>pwd</command></tool></tool_call>`},
-		{name: "function_tag_style", payload: `<function_call>Bash</function_call><function parameter name="command">pwd</function parameter>`},
-		{name: "antml_argument_style", payload: `<antml:function_calls><antml:function_call id="1" name="Bash"><antml:argument name="command">pwd</antml:argument></antml:function_call></antml:function_calls>`},
-		{name: "antml_function_attr_parameters", payload: `<antml:function_calls><antml:function_call id="1" function="Bash"><antml:parameters>{"command":"pwd"}</antml:parameters></antml:function_call></antml:function_calls>`},
-		{name: "invoke_parameter_style", payload: `<function_calls><invoke name="Bash"><parameter name="command">pwd</parameter></invoke></function_calls>`},
+		{name: "canonical_tools_wrapper", payload: `<tools><tool_call><tool_name>Bash</tool_name><param><command>pwd</command></param></tool_call></tools>`, wantToolUse: true},
+		{name: "legacy_single_tool_root", payload: `<tool><tool_name>Bash</tool_name><param><command>pwd</command></param></tool>`, wantToolUse: false},
+		{name: "legacy_tool_call_json", payload: `<tool>{"tool":"Bash","params":{"command":"pwd"}}</tool>`, wantToolUse: false},
+		{name: "legacy_nested_tool_tag_style", payload: `<tool><tool name="Bash"><command>pwd</command></tool_call></tool>`, wantToolUse: false},
+		{name: "legacy_function_tag_style", payload: `<function_call>Bash</function_call><function parameter name="command">pwd</function parameter>`, wantToolUse: false},
+		{name: "legacy_antml_argument_style", payload: `<antml:function_calls><antml:function_call id="1" name="Bash"><antml:argument name="command">pwd</antml:argument></antml:function_call></antml:function_calls>`, wantToolUse: false},
+		{name: "legacy_antml_function_attr_parameters", payload: `<antml:function_calls><antml:function_call id="1" function="Bash"><antml:parameters>{"command":"pwd"}</antml:parameters></antml:function_call></antml:function_calls>`, wantToolUse: false},
+		{name: "legacy_invoke_parameter_style", payload: `<function_calls><invoke name="Bash"><parameter name="command">pwd</parameter></invoke></function_calls>`, wantToolUse: false},
 	}
 
 	for _, tc := range tests {
@@ -280,8 +282,8 @@ func TestHandleClaudeStreamRealtimeToolSafetyAcrossStructuredFormats(t *testing.
 					break
 				}
 			}
-			if !foundToolUse {
-				t.Fatalf("expected tool_use block for format %s, body=%s", tc.name, rec.Body.String())
+			if foundToolUse != tc.wantToolUse {
+				t.Fatalf("unexpected tool_use=%v for format %s, body=%s", foundToolUse, tc.name, rec.Body.String())
 			}
 		})
 	}
@@ -289,7 +291,7 @@ func TestHandleClaudeStreamRealtimeToolSafetyAcrossStructuredFormats(t *testing.
 
 func TestHandleClaudeStreamRealtimeDetectsToolUseWithLeadingProse(t *testing.T) {
 	h := &Handler{}
-	payload := "I'll call a tool now.\\n<tool_use><tool_name>write_file</tool_name><parameters>{\\\"path\\\":\\\"/tmp/a.txt\\\",\\\"content\\\":\\\"abc\\\"}</parameters></tool_use>"
+	payload := "I'll call a tool now.\\n<tools><tool_call><tool_name>write_file</tool_name><param>{\\\"path\\\":\\\"/tmp/a.txt\\\",\\\"content\\\":\\\"abc\\\"}</param></tool_call></tools>"
 	resp := makeClaudeSSEHTTPResponse(
 		`data: {"p":"response/content","v":"`+payload+`"}`,
 		`data: [DONE]`,

@@ -9,12 +9,12 @@ func TestProcessToolSieveInterceptsXMLToolCallWithoutLeak(t *testing.T) {
 	var state toolStreamSieveState
 	// Simulate a model producing XML tool call output chunk by chunk.
 	chunks := []string{
-		"<tool_calls>\n",
+		"<tools>\n",
 		"  <tool_call>\n",
 		"    <tool_name>read_file</tool_name>\n",
-		`    <parameters>{"path":"README.MD"}</parameters>` + "\n",
+		`    <param>{"path":"README.MD"}</param>` + "\n",
 		"  </tool_call>\n",
-		"</tool_calls>",
+		"</tools>",
 	}
 	var events []toolStreamEvent
 	for _, c := range chunks {
@@ -48,10 +48,10 @@ func TestProcessToolSieveHandlesLongXMLToolCall(t *testing.T) {
 	payload := strings.Repeat("x", 4096)
 	splitAt := len(payload) / 2
 	chunks := []string{
-		"<tool_calls>\n  <tool_call>\n    <tool_name>" + toolName + "</tool_name>\n    <parameters>\n      <content><![CDATA[",
+		"<tools>\n  <tool_call>\n    <tool_name>" + toolName + "</tool_name>\n    <param>\n      <content><![CDATA[",
 		payload[:splitAt],
 		payload[splitAt:],
-		"]]></content>\n    </parameters>\n  </tool_call>\n</tool_calls>",
+		"]]></content>\n    </param>\n  </tool_call>\n</tools>",
 	}
 
 	var events []toolStreamEvent
@@ -90,8 +90,8 @@ func TestProcessToolSieveXMLWithLeadingText(t *testing.T) {
 	// Model outputs some prose then an XML tool call.
 	chunks := []string{
 		"Let me check the file.\n",
-		"<tool_calls>\n  <tool_call>\n    <tool_name>read_file</tool_name>\n",
-		`    <parameters>{"path":"go.mod"}</parameters>` + "\n  </tool_call>\n</tool_calls>",
+		"<tools>\n  <tool_call>\n    <tool_name>read_file</tool_name>\n",
+		`    <param>{"path":"go.mod"}</param>` + "\n  </tool_call>\n</tools>",
 	}
 	var events []toolStreamEvent
 	for _, c := range chunks {
@@ -123,7 +123,7 @@ func TestProcessToolSieveXMLWithLeadingText(t *testing.T) {
 
 func TestProcessToolSievePassesThroughNonToolXMLBlock(t *testing.T) {
 	var state toolStreamSieveState
-	chunk := `<tool_call><title>示例 XML</title><body>plain text xml payload</body></tool_call>`
+	chunk := `<tool><title>示例 XML</title><body>plain text xml payload</body></tool>`
 	events := processToolSieveChunk(&state, chunk, []string{"read_file"})
 	events = append(events, flushToolSieve(&state, []string{"read_file"})...)
 
@@ -143,7 +143,7 @@ func TestProcessToolSievePassesThroughNonToolXMLBlock(t *testing.T) {
 
 func TestProcessToolSieveNonToolXMLKeepsSuffixForToolParsing(t *testing.T) {
 	var state toolStreamSieveState
-	chunk := `<tool_call><title>plain xml</title></tool_call><invoke name="read_file"><parameters>{"path":"README.MD"}</parameters></invoke>`
+	chunk := `<tool><title>plain xml</title></tool><tools><tool_call><tool_name>read_file</tool_name><param>{"path":"README.MD"}</param></tool_call></tools>`
 	events := processToolSieveChunk(&state, chunk, []string{"read_file"})
 	events = append(events, flushToolSieve(&state, []string{"read_file"})...)
 
@@ -153,11 +153,11 @@ func TestProcessToolSieveNonToolXMLKeepsSuffixForToolParsing(t *testing.T) {
 		textContent.WriteString(evt.Content)
 		toolCalls += len(evt.ToolCalls)
 	}
-	if !strings.Contains(textContent.String(), `<tool_call><title>plain xml</title></tool_call>`) {
+	if !strings.Contains(textContent.String(), `<tool><title>plain xml</title></tool>`) {
 		t.Fatalf("expected leading non-tool XML to be preserved, got %q", textContent.String())
 	}
-	if strings.Contains(textContent.String(), `<invoke name="read_file">`) {
-		t.Fatalf("expected invoke tool XML to be intercepted, got %q", textContent.String())
+	if strings.Contains(textContent.String(), `<tools><tool_call>`) {
+		t.Fatalf("expected canonical tool XML to be intercepted, got %q", textContent.String())
 	}
 	if toolCalls != 1 {
 		t.Fatalf("expected exactly one parsed tool call from suffix, got %d events=%#v", toolCalls, events)
@@ -166,7 +166,7 @@ func TestProcessToolSieveNonToolXMLKeepsSuffixForToolParsing(t *testing.T) {
 
 func TestProcessToolSievePassesThroughMalformedExecutableXMLBlock(t *testing.T) {
 	var state toolStreamSieveState
-	chunk := `<tool_call><parameters>{"path":"README.md"}</parameters></tool_call>`
+	chunk := `<tools><tool_call><param>{"path":"README.md"}</param></tool_call></tools>`
 	events := processToolSieveChunk(&state, chunk, []string{"read_file"})
 	events = append(events, flushToolSieve(&state, []string{"read_file"})...)
 
@@ -189,17 +189,17 @@ func TestProcessToolSievePassesThroughFencedXMLToolCallExamples(t *testing.T) {
 	var state toolStreamSieveState
 	input := strings.Join([]string{
 		"Before first example.\n```",
-		"xml\n<tool_call><tool_name>read_file</tool_name><parameters>{\"path\":\"README.md\"}</parameters></tool_call>\n```\n",
+		"xml\n<tools><tool_call><tool_name>read_file</tool_name><param>{\"path\":\"README.md\"}</param></tool_call></tools>\n```\n",
 		"Between examples.\n```xml\n",
-		"<tool_call><tool_name>search</tool_name><parameters>{\"q\":\"golang\"}</parameters></tool_call>\n",
+		"<tools><tool_call><tool_name>search</tool_name><param>{\"q\":\"golang\"}</param></tool_call></tools>\n",
 		"```\nAfter examples.",
 	}, "")
 
 	chunks := []string{
 		"Before first example.\n```",
-		"xml\n<tool_call><tool_name>read_file</tool_name><parameters>{\"path\":\"README.md\"}</parameters></tool_call>\n```\n",
+		"xml\n<tools><tool_call><tool_name>read_file</tool_name><param>{\"path\":\"README.md\"}</param></tool_call></tools>\n```\n",
 		"Between examples.\n```xml\n",
-		"<tool_call><tool_name>search</tool_name><parameters>{\"q\":\"golang\"}</parameters></tool_call>\n",
+		"<tools><tool_call><tool_name>search</tool_name><param>{\"q\":\"golang\"}</param></tool_call></tools>\n",
 		"```\nAfter examples.",
 	}
 
@@ -230,13 +230,13 @@ func TestProcessToolSieveKeepsPartialXMLTagInsideFencedExample(t *testing.T) {
 	var state toolStreamSieveState
 	input := strings.Join([]string{
 		"Example:\n```xml\n<tool_ca",
-		"ll><tool_name>read_file</tool_name><parameters>{\"path\":\"README.md\"}</parameters></tool_call>\n```\n",
+		"ll><tool_name>read_file</tool_name><param>{\"path\":\"README.md\"}</param></tool_call></tools>\n```\n",
 		"Done.",
 	}, "")
 
 	chunks := []string{
 		"Example:\n```xml\n<tool_ca",
-		"ll><tool_name>read_file</tool_name><parameters>{\"path\":\"README.md\"}</parameters></tool_call>\n```\n",
+		"ll><tool_name>read_file</tool_name><param>{\"path\":\"README.md\"}</param></tool_call></tools>\n```\n",
 		"Done.",
 	}
 
@@ -288,11 +288,9 @@ func TestFindToolSegmentStartDetectsXMLToolCalls(t *testing.T) {
 		input string
 		want  int
 	}{
-		{"tool_calls_tag", "some text <tool_calls>\n", 10},
+		{"tools_tag", "some text <tools>\n", 10},
 		{"tool_call_tag", "prefix <tool_call>\n", 7},
-		{"invoke_tag", "text <invoke name=\"foo\">body</invoke>", 5},
-		{"xml_inside_code_fence", "```xml\n<tool_call><tool_name>read_file</tool_name></tool_call>\n```", -1},
-		{"function_call_tag", "<function_call name=\"foo\">body</function_call>", 0},
+		{"xml_inside_code_fence", "```xml\n<tools><tool_call><tool_name>read_file</tool_name></tool_call></tools>\n```", -1},
 		{"no_xml", "just plain text", -1},
 		{"gemini_json_no_detect", `some text {"functionCall":{"name":"search"}}`, -1},
 	}
@@ -312,10 +310,10 @@ func TestFindPartialXMLToolTagStart(t *testing.T) {
 		input string
 		want  int
 	}{
+		{"partial_tools", "Hello <too", 6},
 		{"partial_tool_call", "Hello <tool_ca", 6},
-		{"partial_invoke", "Prefix <inv", 7},
 		{"partial_lt_only", "Text <", 5},
-		{"complete_tag", "Text <tool_call>done", -1},
+		{"complete_tag", "Text <tools>done", -1},
 		{"no_lt", "plain text", -1},
 		{"closed_lt", "a < b > c", -1},
 	}
@@ -330,10 +328,10 @@ func TestFindPartialXMLToolTagStart(t *testing.T) {
 }
 
 func TestHasOpenXMLToolTag(t *testing.T) {
-	if !hasOpenXMLToolTag("<tool_call>\n<tool_name>foo</tool_name>") {
+	if !hasOpenXMLToolTag("<tools>\n<tool_call>\n<tool_name>foo</tool_name>") {
 		t.Fatal("should detect open XML tool tag without closing tag")
 	}
-	if hasOpenXMLToolTag("<tool_call>\n<tool_name>foo</tool_name></tool_call>") {
+	if hasOpenXMLToolTag("<tools>\n<tool_call>\n<tool_name>foo</tool_name></tool_call>\n</tools>") {
 		t.Fatal("should return false when closing tag is present")
 	}
 	if hasOpenXMLToolTag("plain text without any XML") {
@@ -342,14 +340,14 @@ func TestHasOpenXMLToolTag(t *testing.T) {
 }
 
 // Test the EXACT scenario the user reports: token-by-token streaming where
-// <tool_calls> tag arrives in small pieces.
+// <tools> tag arrives in small pieces.
 func TestProcessToolSieveTokenByTokenXMLNoLeak(t *testing.T) {
 	var state toolStreamSieveState
 	// Simulate DeepSeek model generating tokens one at a time.
 	chunks := []string{
 		"<",
 		"tool",
-		"_calls",
+		"s",
 		">\n",
 		"  <",
 		"tool",
@@ -366,21 +364,20 @@ func TestProcessToolSieveTokenByTokenXMLNoLeak(t *testing.T) {
 		"_name",
 		">\n",
 		"    <",
-		"parameters",
+		"param",
 		">",
 		`{"path"`,
 		`: "README.MD"`,
 		`}`,
 		"</",
-		"parameters",
+		"param",
 		">\n",
 		"  </",
 		"tool",
 		"_call",
 		">\n",
 		"</",
-		"tool",
-		"_calls",
+		"tools",
 		">",
 	}
 	var events []toolStreamEvent
@@ -401,7 +398,7 @@ func TestProcessToolSieveTokenByTokenXMLNoLeak(t *testing.T) {
 	if strings.Contains(textContent, "<tool_call") {
 		t.Fatalf("XML tool call content leaked to text in token-by-token mode: %q", textContent)
 	}
-	if strings.Contains(textContent, "tool_calls>") {
+	if strings.Contains(textContent, "tools>") {
 		t.Fatalf("closing tag fragment leaked to text: %q", textContent)
 	}
 	if strings.Contains(textContent, "read_file") {
@@ -417,7 +414,7 @@ func TestFlushToolSieveIncompleteXMLFallsBackToText(t *testing.T) {
 	var state toolStreamSieveState
 	// XML block starts but stream ends before completion.
 	chunks := []string{
-		"<tool_calls>\n",
+		"<tools>\n",
 		"  <tool_call>\n",
 		"    <tool_name>read_file</tool_name>\n",
 	}
@@ -440,19 +437,19 @@ func TestFlushToolSieveIncompleteXMLFallsBackToText(t *testing.T) {
 	}
 }
 
-// Test that the opening tag "<tool_calls>\n  " is NOT emitted as text content.
+// Test that the opening tag "<tools>\n  " is NOT emitted as text content.
 func TestOpeningXMLTagNotLeakedAsContent(t *testing.T) {
 	var state toolStreamSieveState
 	// First chunk is the opening tag - should be held, not emitted.
-	evts1 := processToolSieveChunk(&state, "<tool_calls>\n  ", []string{"read_file"})
+	evts1 := processToolSieveChunk(&state, "<tools>\n  ", []string{"read_file"})
 	for _, evt := range evts1 {
-		if strings.Contains(evt.Content, "<tool_calls>") {
+		if strings.Contains(evt.Content, "<tools>") {
 			t.Fatalf("opening tag leaked on first chunk: %q", evt.Content)
 		}
 	}
 
 	// Remaining content arrives.
-	evts2 := processToolSieveChunk(&state, "<tool_call>\n    <tool_name>read_file</tool_name>\n    <parameters>{\"path\":\"README.MD\"}</parameters>\n  </tool_call>\n</tool_calls>", []string{"read_file"})
+	evts2 := processToolSieveChunk(&state, "<tool_call>\n    <tool_name>read_file</tool_name>\n    <param>{\"path\":\"README.MD\"}</param>\n  </tool_call>\n</tools>", []string{"read_file"})
 	evts2 = append(evts2, flushToolSieve(&state, []string{"read_file"})...)
 
 	var textContent string
