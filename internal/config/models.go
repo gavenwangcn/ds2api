@@ -77,6 +77,21 @@ func GetModelType(model string) (modelType string, ok bool) {
 	}
 }
 
+// UpstreamCompletionModelType returns the "model_type" value for the DeepSeek chat
+// /completion request body. The upstream API only accepts default, expert, and DEFAULT
+// (see API serde); it no longer accepts "vision". We keep GetModelType "vision" for
+// internal semantics; multimodal is encoded via ref_file_ids and the resolved model id.
+func UpstreamCompletionModelType(modelID string) string {
+	t, ok := GetModelType(modelID)
+	if !ok {
+		return "default"
+	}
+	if t == "vision" {
+		return "default"
+	}
+	return t
+}
+
 func IsSupportedDeepSeekModel(model string) bool {
 	_, _, ok := GetModelConfig(model)
 	return ok

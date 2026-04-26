@@ -190,7 +190,7 @@ func TestTestAccount_MessageModeUsesExpertModelTypeForExpertModel(t *testing.T) 
 	}
 }
 
-func TestTestAccount_MessageModeUsesVisionModelTypeForVisionModel(t *testing.T) {
+func TestTestAccount_MessageModeSendsDefaultModelTypeForVisionModel(t *testing.T) {
 	t.Setenv("DS2API_CONFIG_JSON", `{"accounts":[{"email":"batch@example.com","password":"pwd","token":"seed-token"}]}`)
 	store := config.LoadStore()
 	ds := &completionPayloadDSMock{}
@@ -205,7 +205,7 @@ func TestTestAccount_MessageModeUsesVisionModelTypeForVisionModel(t *testing.T) 
 	if ok, _ := result["success"].(bool); !ok {
 		t.Fatalf("expected success=true, got %#v", result)
 	}
-	if got := ds.payload["model_type"]; got != "vision" {
-		t.Fatalf("expected model_type vision, got %#v", got)
+	if got := ds.payload["model_type"]; got != "default" {
+		t.Fatalf("expected upstream model_type default for vision, got %#v", got)
 	}
 }

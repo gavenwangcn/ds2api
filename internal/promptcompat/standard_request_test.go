@@ -12,7 +12,8 @@ func TestStandardRequestCompletionPayloadSetsModelTypeFromResolvedModel(t *testi
 	}{
 		{name: "default", model: "deepseek-v4-flash", thinking: false, search: false, modelType: "default"},
 		{name: "expert", model: "deepseek-v4-pro", thinking: true, search: false, modelType: "expert"},
-		{name: "vision", model: "deepseek-v4-vision-search", thinking: false, search: true, modelType: "vision"},
+		// Upstream no longer allows model_type=vision; we send "default" (vision-search + ref_file_ids + search_enabled).
+		{name: "vision_search", model: "deepseek-v4-vision-search", thinking: false, search: true, modelType: "default"},
 	}
 
 	for _, tc := range tests {

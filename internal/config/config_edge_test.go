@@ -94,6 +94,21 @@ func TestGetModelTypeDefaultExpertAndVision(t *testing.T) {
 	}
 }
 
+func TestUpstreamCompletionModelType(t *testing.T) {
+	if got := UpstreamCompletionModelType("deepseek-v4-vision"); got != "default" {
+		t.Fatalf("vision models must map to default for upstream, got %q", got)
+	}
+	if got := UpstreamCompletionModelType("deepseek-v4-vision-search"); got != "default" {
+		t.Fatalf("vision-search must map to default for upstream, got %q", got)
+	}
+	if got := UpstreamCompletionModelType("deepseek-v4-pro"); got != "expert" {
+		t.Fatalf("pro must stay expert, got %q", got)
+	}
+	if got := UpstreamCompletionModelType(""); got != "default" {
+		t.Fatalf("empty model id, got %q", got)
+	}
+}
+
 func TestGetModelConfigCaseInsensitive(t *testing.T) {
 	thinking, search, ok := GetModelConfig("DeepSeek-V4-Flash")
 	if !ok {
