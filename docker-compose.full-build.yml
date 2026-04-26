@@ -1,0 +1,31 @@
+# 从源码构建「后端 + 管理端 WebUI」并运行（单容器部署）
+#
+# 与 docker-compose.dev.yml 的区别：
+#   - dev 只构建 go-builder，容器内用 go run，且依赖本机 static/admin 已存在；
+#   - 本文件构建 Dockerfile 的 final 阶段：npm 构建 webui → 嵌入 static/admin → 编译 ds2api。
+#
+# 用法：
+#   docker compose -f docker-compose.full-build.yml up -d --build
+#
+# 首次或改完前后端代码后需重新构建镜像时加 --build。
+# 产物镜像名默认 ds2api:full（可用 image: 覆盖）。
+
+services:
+  ds2api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    image: ds2api:full
+    container_name: ds2api-full
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${DS2API_HOST_PORT:-6011}:5001"
+    volumes:
+      - ./config.json:/app/config.json
+    environment:
+      - TZ=Asia/Shanghai
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DS2API_ADMIN_KEY=${DS2API_ADMIN_KEY:-ds2api}
