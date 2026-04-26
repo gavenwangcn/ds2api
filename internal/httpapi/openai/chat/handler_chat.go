@@ -101,6 +101,7 @@ func (h *Handler) ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		if historySession != nil {
 			historySession.error(http.StatusInternalServerError, "Failed to get completion.", "error", "", "")
 		}
+		config.Logger.Error("[chat] CallCompletion failed", "error", err, "trace", requestTraceID(r))
 		writeOpenAIError(w, http.StatusInternalServerError, "Failed to get completion.")
 		return
 	}

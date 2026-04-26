@@ -3,14 +3,14 @@ package client
 import (
 	"bytes"
 	"context"
-	dsprotocol "ds2api/internal/deepseek/protocol"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	"ds2api/internal/auth"
 	"ds2api/internal/config"
+	dsprotocol "ds2api/internal/deepseek/protocol"
 	trans "ds2api/internal/deepseek/transport"
 )
 
@@ -23,9 +23,12 @@ func (c *Client) CallCompletion(ctx context.Context, a *auth.RequestAuth, payloa
 	headers["x-ds-pow-response"] = powResp
 	captureSession := c.capture.Start("deepseek_completion", dsprotocol.DeepSeekCompletionURL, a.AccountID, payload)
 	attempts := 0
+	var lastErrDetail string
 	for attempts < maxAttempts {
 		resp, err := c.streamPost(ctx, clients.stream, dsprotocol.DeepSeekCompletionURL, headers, payload)
 		if err != nil {
+			lastErrDetail = "transport: " + err.Error()
+			config.Logger.Warn("[deepseek] completion stream post failed", "url", dsprotocol.DeepSeekCompletionURL, "error", err, "account", a.AccountID, "attempt", attempts+1)
 			attempts++
 			time.Sleep(time.Second)
 			continue
@@ -40,11 +43,25 @@ func (c *Client) CallCompletion(ctx context.Context, a *auth.RequestAuth, payloa
 		if captureSession != nil {
 			resp.Body = captureSession.WrapBody(resp.Body, resp.StatusCode)
 		}
-		_ = resp.Body.Close()
+		body, readErr := readResponseBody(resp)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			config.Logger.Warn("[deepseek] completion non-OK body close failed", "error", closeErr)
+		}
+		prev := ""
+		if readErr != nil {
+			prev = "read: " + readErr.Error()
+		} else {
+			prev = preview(body)
+		}
+		lastErrDetail = fmt.Sprintf("status=%d preview=%q", resp.StatusCode, prev)
+		config.Logger.Warn("[deepseek] completion upstream non-OK", "status", resp.StatusCode, "content_encoding", resp.Header.Get("Content-Encoding"), "preview", prev, "account", a.AccountID, "attempt", attempts+1)
 		attempts++
 		time.Sleep(time.Second)
 	}
-	return nil, errors.New("completion failed")
+	if lastErrDetail == "" {
+		return nil, fmt.Errorf("completion failed after %d attempts", maxAttempts)
+	}
+	return nil, fmt.Errorf("completion failed after %d attempts, last: %s", maxAttempts, lastErrDetail)
 }
 
 func (c *Client) streamPost(ctx context.Context, doer trans.Doer, url string, headers map[string]string, payload any) (*http.Response, error) {

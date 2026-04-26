@@ -109,6 +109,7 @@ func (h *Handler) Responses(w http.ResponseWriter, r *http.Request) {
 	payload := stdReq.CompletionPayload(sessionID)
 	resp, err := h.DS.CallCompletion(r.Context(), a, payload, pow, 3)
 	if err != nil {
+		config.Logger.Error("[responses] CallCompletion failed", "error", err, "trace", traceID)
 		writeOpenAIError(w, http.StatusInternalServerError, "Failed to get completion.")
 		return
 	}
