@@ -113,6 +113,7 @@ func (h *Handler) prepareChatStreamRuntime(w http.ResponseWriter, resp *http.Res
 	if resp.StatusCode != http.StatusOK {
 		defer func() { _ = resp.Body.Close() }()
 		body, _ := io.ReadAll(resp.Body)
+		config.Logger.Warn("[chat] stream completion upstream non-OK", "status", resp.StatusCode, "body", strings.TrimSpace(string(body)))
 		if historySession != nil {
 			historySession.error(resp.StatusCode, string(body), "error", "", "")
 		}

@@ -68,6 +68,7 @@ func StartCompletion(ctx context.Context, ds DeepSeekCaller, a *auth.RequestAuth
 	payload := stdReq.CompletionPayload(sessionID)
 	resp, err := ds.CallCompletion(ctx, a, payload, pow, maxAttempts)
 	if err != nil {
+		config.Logger.Error("[completion_runtime] CallCompletion failed", "surface", stdReq.Surface, "error", err, "account", a.AccountID)
 		return StartResult{SessionID: sessionID, Payload: payload, Pow: pow, Request: stdReq}, &assistantturn.OutputError{Status: http.StatusInternalServerError, Message: "Failed to get completion.", Code: "error"}
 	}
 	return StartResult{SessionID: sessionID, Payload: payload, Pow: pow, Response: resp, Request: stdReq}, nil
@@ -251,6 +252,7 @@ func collectAttempt(resp *http.Response, stdReq promptcompat.StandardRequest, us
 		if message == "" {
 			message = http.StatusText(resp.StatusCode)
 		}
+		config.Logger.Warn("[completion_runtime] completion upstream non-OK", "surface", stdReq.Surface, "status", resp.StatusCode, "body", message)
 		return assistantturn.Turn{}, &assistantturn.OutputError{Status: resp.StatusCode, Message: message, Code: "error"}
 	}
 	result := sse.CollectStream(resp, stdReq.Thinking, false)

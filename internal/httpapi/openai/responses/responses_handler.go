@@ -112,6 +112,7 @@ func (h *Handler) Responses(w http.ResponseWriter, r *http.Request) {
 			if historySession != nil {
 				historySession.ErrorTurn(outErr.Status, outErr.Message, outErr.Code, result.Turn)
 			}
+			config.Logger.Error("[responses] ExecuteNonStreamWithRetry failed", "status", outErr.Status, "message", outErr.Message, "code", outErr.Code, "trace", traceID)
 			writeOpenAIErrorWithCode(w, outErr.Status, outErr.Message, outErr.Code)
 			return
 		}
@@ -132,6 +133,7 @@ func (h *Handler) Responses(w http.ResponseWriter, r *http.Request) {
 		if historySession != nil {
 			historySession.Error(outErr.Status, outErr.Message, outErr.Code, "", "")
 		}
+		config.Logger.Error("[responses] StartCompletion failed", "status", outErr.Status, "message", outErr.Message, "code", outErr.Code, "trace", traceID)
 		writeOpenAIErrorWithCode(w, outErr.Status, outErr.Message, outErr.Code)
 		return
 	}

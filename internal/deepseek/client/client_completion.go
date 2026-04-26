@@ -3,12 +3,12 @@ package client
 import (
 	"bytes"
 	"context"
-	dsprotocol "ds2api/internal/deepseek/protocol"
 	"encoding/json"
 	"net/http"
 
 	"ds2api/internal/auth"
 	"ds2api/internal/config"
+	dsprotocol "ds2api/internal/deepseek/protocol"
 	trans "ds2api/internal/deepseek/transport"
 )
 

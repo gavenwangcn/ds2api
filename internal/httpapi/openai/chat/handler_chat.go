@@ -92,6 +92,7 @@ func (h *Handler) ChatCompletions(w http.ResponseWriter, r *http.Request) {
 			if historySession != nil {
 				historySession.error(outErr.Status, outErr.Message, outErr.Code, historyThinkingForArchive(result.Turn.RawThinking, result.Turn.DetectionThinking, result.Turn.Thinking), historyTextForArchive(result.Turn.RawText, result.Turn.Text))
 			}
+			config.Logger.Error("[chat] ExecuteNonStreamWithRetry failed", "status", outErr.Status, "message", outErr.Message, "code", outErr.Code, "trace", requestTraceID(r))
 			writeOpenAIErrorWithCode(w, outErr.Status, outErr.Message, outErr.Code)
 			return
 		}
@@ -113,6 +114,7 @@ func (h *Handler) ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		if historySession != nil {
 			historySession.error(outErr.Status, outErr.Message, outErr.Code, "", "")
 		}
+		config.Logger.Error("[chat] StartCompletion failed", "status", outErr.Status, "message", outErr.Message, "code", outErr.Code, "trace", requestTraceID(r))
 		writeOpenAIErrorWithCode(w, outErr.Status, outErr.Message, outErr.Code)
 		return
 	}
