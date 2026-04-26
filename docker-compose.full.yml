@@ -27,5 +27,5 @@ services:
       - ./config.json:/app/config.json
     environment:
       - TZ=Asia/Shanghai
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       - DS2API_ADMIN_KEY=${DS2API_ADMIN_KEY:-ds2api}
