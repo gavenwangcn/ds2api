@@ -5,7 +5,7 @@
 #   - 本文件构建 Dockerfile 的 final 阶段：npm 构建 webui → 嵌入 static/admin → 编译 ds2api。
 #
 # 用法：
-#   docker compose -f docker-compose.full-build.yml up -d --build
+#   docker compose -f docker-compose.full.yml up -d --build
 #
 # 首次或改完前后端代码后需重新构建镜像时加 --build。
 # 产物镜像名默认 ds2api:full（可用 image: 覆盖）。
